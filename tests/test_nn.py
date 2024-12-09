@@ -1,3 +1,4 @@
+from math import exp
 import pytest
 from hypothesis import given
 
@@ -32,7 +33,25 @@ def test_avg(t: Tensor) -> None:
 @given(tensors(shape=(2, 3, 4)))
 def test_max(t: Tensor) -> None:
     # TODO: Implement for Task 4.4.
-    raise NotImplementedError("Need to implement for Task 4.4")
+    I, J, K = t.shape
+    out = minitorch.nn.max(t, 0)
+    for j in range(J):
+        for k in range(K):
+            expected = max(t[i, j, k] for i in range(I))
+            assert out[0, j, k] == expected
+    out = minitorch.nn.max(t, 1)
+    for i in range(I):
+        for k in range(K):
+            expected = max(t[i, j, k] for j in range(J))
+            assert out[i, 0, k] == expected
+    out = minitorch.nn.max(t, 2)
+    for i in range(I):
+        for j in range(J):
+            expected = max(t[i, j, k] for k in range(K))
+            assert out[i, j, 0] == expected
+
+    for dim in range(3):
+        minitorch.grad_check(lambda x: minitorch.nn.max(x, dim), t + minitorch.rand(t.shape) * 1e-3)
 
 
 @pytest.mark.task4_4
