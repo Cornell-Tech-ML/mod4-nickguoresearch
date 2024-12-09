@@ -42,7 +42,7 @@ class Conv2d(minitorch.Module):
 
     def forward(self, input):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        return minitorch.conv2d(input, self.weights.value) + self.bias.value
 
 
 class Network(minitorch.Module):
@@ -68,11 +68,22 @@ class Network(minitorch.Module):
         self.out = None
 
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        self.conv1 = Conv2d(1, 4, 3, 3)
+        self.conv2 = Conv2d(4, 8, 3, 3)
+        self.linear1 = Linear(392, 64)
+        self.linear2 = Linear(64, C)
 
     def forward(self, x):
         # TODO: Implement for Task 4.5.
-        raise NotImplementedError("Need to implement for Task 4.5")
+        self.mid = self.conv1.forward(x).relu()
+        self.out = self.conv2.forward(self.mid).relu()
+        tmp = self.linear1.forward(
+            minitorch.avgpool2d(self.out, (4, 4)).view(BATCH, 392)
+        )
+        tmp = minitorch.dropout(tmp, rate=0.25, ignore=not self.training)
+        tmp = self.linear2.forward(tmp)
+        out = minitorch.logsoftmax(tmp, dim=1)
+        return out
 
 
 def make_mnist(start, stop):
@@ -163,7 +174,8 @@ class ImageTrain:
                                     m = out[i, j]
                             if y[i, ind] == 1.0:
                                 correct += 1
-                    log_fn(epoch, total_loss, correct, BATCH, losses, model)
+                    if batch_num == 0 or batch_num == 50 or batch_num == 100 or batch_num == 150 or batch_num == 200 or batch_num == 310:
+                        log_fn(epoch, total_loss, correct, BATCH, losses, model)
 
                     total_loss = 0.0
                     model.train()

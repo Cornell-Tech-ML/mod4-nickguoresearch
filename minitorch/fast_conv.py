@@ -7,8 +7,6 @@ from numba import njit as _njit
 from .autodiff import Context
 from .tensor import Tensor
 from .tensor_data import (
-    MAX_DIMS,
-    Index,
     Shape,
     Strides,
     Storage,
@@ -22,6 +20,7 @@ Fn = TypeVar("Fn")
 
 
 def njit(fn: Fn, **kwargs: Any) -> Fn:
+    """Function njit"""
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -91,7 +90,17 @@ def _tensor_conv1d(
     s2 = weight_strides
 
     # TODO: Implement for Task 4.1.
-    raise NotImplementedError("Need to implement for Task 4.1")
+    for b in prange(batch):
+        for oc in prange(out_channels):
+            for i in prange(out_width):
+                o = b * out_strides[0] + oc * out_strides[1] + i * out_strides[2]
+                for ic in prange(in_channels):
+                    start = max(i - kw + 1, 0) if reverse else min(i, width - 1)
+                    end = min(i + 1, width) if reverse else min(i + kw, width)
+                    for j in prange(start, end):
+                        k = b * s1[0] + ic * s1[1] + j * s1[2]
+                        w = oc * s2[0] + ic * s2[1] + (j - start) * s2[2]
+                        out[o] += input[k] * weight[w]
 
 
 tensor_conv1d = njit(_tensor_conv1d, parallel=True)
@@ -127,6 +136,7 @@ class Conv1dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Backward of 1D Convolution"""
         input, weight = ctx.saved_values
         batch, in_channels, w = input.shape
         out_channels, in_channels, kw = weight.shape
@@ -220,7 +230,42 @@ def _tensor_conv2d(
     s20, s21, s22, s23 = s2[0], s2[1], s2[2], s2[3]
 
     # TODO: Implement for Task 4.2.
-    raise NotImplementedError("Need to implement for Task 4.2")
+    for out_i in prange(out_size):
+        out_index = np.zeros(4, dtype=np.int32)
+        to_index(out_i, out_shape, out_index)
+        curr_batch, curr_out_channels, curr_height, curr_width = out_index
+        val = 0
+        for ic in prange(in_channels):
+            for i in range(kh):
+                for j in range(kw):
+                    if reverse:
+                        j = kw - j - 1
+                        i = kh - i - 1
+                    w = weight[s20 * curr_out_channels + s21 * ic + s22 * i + s23 * j]
+                    inc = 0
+                    if reverse:
+                        if curr_height - i >= 0 and curr_width - j >= 0:
+                            inc = input[
+                                curr_batch * s10
+                                + ic * s11
+                                + (curr_height - i) * s12
+                                + (curr_width - j) * s13
+                            ]
+                    else:
+                        if i + curr_height < height and j + curr_width < width:
+                            inc = input[
+                                curr_batch * s10
+                                + ic * s11
+                                + (i + curr_height) * s12
+                                + (j + curr_width) * s13
+                            ]
+                    val += w * inc
+        out[
+            curr_batch * out_strides[0]
+            + curr_out_channels * out_strides[1]
+            + curr_height * out_strides[2]
+            + curr_width * out_strides[3]
+        ] = val
 
 
 tensor_conv2d = njit(_tensor_conv2d, parallel=True, fastmath=True)
@@ -254,6 +299,7 @@ class Conv2dFun(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, Tensor]:
+        """Backward of 2D Convolution"""
         input, weight = ctx.saved_values
         batch, in_channels, h, w = input.shape
         out_channels, in_channels, kh, kw = weight.shape
