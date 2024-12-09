@@ -1,4 +1,3 @@
-from math import exp
 import pytest
 from hypothesis import given
 
@@ -51,7 +50,9 @@ def test_max(t: Tensor) -> None:
             assert out[i, j, 0] == expected
 
     for dim in range(3):
-        minitorch.grad_check(lambda x: minitorch.nn.max(x, dim), t + minitorch.rand(t.shape) * 1e-3)
+        minitorch.grad_check(
+            lambda x: minitorch.nn.max(x, dim), t + minitorch.rand(t.shape) * 1e-3
+        )
 
 
 @pytest.mark.task4_4

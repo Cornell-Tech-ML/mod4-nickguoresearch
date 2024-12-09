@@ -53,6 +53,7 @@ def avgpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     pooled = input.mean(dim=-1)
     return pooled.view(batch, channel, new_height, new_width)
 
+
 max_reduce = FastOps.reduce(operators.max, -1e9)
 
 
@@ -92,6 +93,7 @@ def logsoftmax(input: Tensor, dim: int) -> Tensor:
     """Compute the log of the softmax as a tensor"""
     m = max(input, dim=dim)
     return input - m - (input - m).exp().sum(dim=dim).log()
+
 
 def maxpool2d(input: Tensor, kernel: Tuple[int, int]) -> Tensor:
     """Tiled max pooling 2D"""

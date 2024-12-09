@@ -93,9 +93,7 @@ def _tensor_conv1d(
     for b in prange(batch):
         for oc in prange(out_channels):
             for i in prange(out_width):
-                o = (
-                    b * out_strides[0] + oc * out_strides[1] + i * out_strides[2]
-                )
+                o = b * out_strides[0] + oc * out_strides[1] + i * out_strides[2]
                 for ic in prange(in_channels):
                     start = max(i - kw + 1, 0) if reverse else min(i, width - 1)
                     end = min(i + 1, width) if reverse else min(i + kw, width)
@@ -247,13 +245,28 @@ def _tensor_conv2d(
                     inc = 0
                     if reverse:
                         if curr_height - i >= 0 and curr_width - j >= 0:
-                            inc = input[curr_batch * s10 + ic * s11 + (curr_height - i) * s12 + (curr_width - j) * s13]
+                            inc = input[
+                                curr_batch * s10
+                                + ic * s11
+                                + (curr_height - i) * s12
+                                + (curr_width - j) * s13
+                            ]
                     else:
                         if i + curr_height < height and j + curr_width < width:
-                            inc = input[curr_batch * s10 + ic * s11 + (i + curr_height) * s12 + (j + curr_width) * s13]
+                            inc = input[
+                                curr_batch * s10
+                                + ic * s11
+                                + (i + curr_height) * s12
+                                + (j + curr_width) * s13
+                            ]
                     val += w * inc
-        out[curr_batch * out_strides[0] + curr_out_channels * out_strides[1]
-        + curr_height * out_strides[2] + curr_width * out_strides[3]] = val
+        out[
+            curr_batch * out_strides[0]
+            + curr_out_channels * out_strides[1]
+            + curr_height * out_strides[2]
+            + curr_width * out_strides[3]
+        ] = val
+
 
 tensor_conv2d = njit(_tensor_conv2d, parallel=True, fastmath=True)
 
